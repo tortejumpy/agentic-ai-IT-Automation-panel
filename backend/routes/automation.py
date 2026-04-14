@@ -4,6 +4,7 @@ Allows users to submit IT automation tasks through a web UI and see real-time ex
 """
 
 import asyncio
+import sys
 import json
 import logging
 import os
@@ -20,6 +21,14 @@ from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
 
 from agent.agent import ITSupportAgent
+
+# ========================================================================
+# WINDOWS FIX: Use ProactorEventLoop for subprocess support
+# ========================================================================
+# On Windows, the default SelectorEventLoop doesn't support subprocesses.
+# ProactorEventLoop works with subprocess creation (required for Playwright).
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Load environment
 load_dotenv()
@@ -85,8 +94,13 @@ class JobExecutor:
             self._setup_log_capture()
             
             # Create a new event loop for this thread
-            # This is necessary for Playwright on Windows to work properly
-            loop = asyncio.new_event_loop()
+            # On Windows: Use ProactorEventLoop for subprocess support
+            # On other OS: Use default
+            if sys.platform == 'win32':
+                loop = asyncio.ProactorEventLoop()
+            else:
+                loop = asyncio.new_event_loop()
+            
             asyncio.set_event_loop(loop)
             
             try:
