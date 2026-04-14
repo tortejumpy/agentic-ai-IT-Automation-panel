@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Create User — IT Admin Panel{% endblock %}
+
+{% block content %}
+<div class="page-header" id="create-user-header">
+    <h1>Create New User</h1>
+    <p>Add a new user account to the system</p>
+</div>
+
+<div style="max-width: 560px;">
+
+    {% if message %}
+    <div class="alert alert-success" id="create-user-success-message">{{ message }}</div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-error" id="create-user-error-message">{{ error }}</div>
+    {% endif %}
+
+    <div class="card" id="create-user-card">
+        <div class="card-title">User Details</div>
+
+        <form method="POST" action="/create-user" id="create-user-form">
+
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    placeholder="e.g. Alice Johnson"
+                    required
+                    autocomplete="off"
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="e.g. alice@company.com"
+                    required
+                    autocomplete="off"
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Initial Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Min. 6 characters"
+                    required
+                    autocomplete="new-password"
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="license_type">License Type</label>
+                <select id="license_type" name="license_type">
+                    {% for lt in license_types %}
+                    <option value="{{ lt }}" id="license-option-{{ lt }}">
+                        {{ lt | capitalize }}
+                        {% if lt == 'basic' %} — Standard access
+                        {% elif lt == 'pro' %} — Advanced features
+                        {% elif lt == 'enterprise' %} — Full access + support
+                        {% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:8px;">
+                <button type="submit" class="btn btn-primary" id="create-user-submit-btn">
+                    ➕ Create User
+                </button>
+                <a href="/users" class="btn btn-secondary" id="create-user-cancel-btn">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Info box -->
+    <div class="alert alert-info" id="create-user-info">
+        <strong>ℹ️ Note:</strong> The user will receive access credentials via their registered email address.
+        License can be changed at any time via the Assign License page.
+    </div>
+
+</div>
+
+{% endblock %}

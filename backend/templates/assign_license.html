@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Assign License — IT Admin Panel{% endblock %}
+
+{% block content %}
+<div class="page-header" id="assign-license-header">
+    <h1>Assign License</h1>
+    <p>Assign or change a user's license tier</p>
+</div>
+
+<div style="max-width:520px;">
+
+    {% if message %}
+    <div class="alert alert-success" id="assign-license-success-message">{{ message }}</div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-error" id="assign-license-error-message">{{ error }}</div>
+    {% endif %}
+
+    <div class="card" id="assign-license-card">
+        <div class="card-title">License Assignment</div>
+
+        <form method="POST" action="/assign-license" id="assign-license-form">
+
+            <div class="form-group">
+                <label for="email">User Email Address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="e.g. alice@company.com"
+                    value="{{ prefill_email }}"
+                    required
+                    autocomplete="off"
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="license_type">License Type</label>
+                <select id="license_type" name="license_type" required>
+                    {% for lt in license_types %}
+                    <option value="{{ lt }}" id="license-option-{{ lt }}">
+                        {{ lt | capitalize }}
+                        {% if lt == 'basic' %} — Standard access
+                        {% elif lt == 'pro' %} — Advanced features + priority support
+                        {% elif lt == 'enterprise' %} — Full access + dedicated support
+                        {% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:8px;">
+                <button type="submit" class="btn btn-primary" id="assign-license-submit-btn">
+                    📋 Assign License
+                </button>
+                <a href="/users" class="btn btn-secondary" id="assign-license-cancel-btn">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- License comparison table -->
+    <div class="card" id="license-comparison-card">
+        <div class="card-title">License Tiers</div>
+        <table id="license-comparison-table">
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>Features</th>
+                    <th>Support</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="badge badge-basic">Basic</span></td>
+                    <td>Standard features</td>
+                    <td>Community</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-pro">Pro</span></td>
+                    <td>Advanced features + API</td>
+                    <td>Priority email</td>
+                </tr>
+                <tr>
+                    <td><span class="badge badge-enterprise">Enterprise</span></td>
+                    <td>Full access + custom integrations</td>
+                    <td>Dedicated 24/7</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

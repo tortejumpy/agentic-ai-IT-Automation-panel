@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Users — IT Admin Panel{% endblock %}
+
+{% block content %}
+<div class="page-header" id="users-header">
+    <h1>User Management</h1>
+    <p>View and manage all registered users</p>
+</div>
+
+<!-- Action Bar -->
+<div style="display:flex; gap:10px; margin-bottom:20px;" id="users-actions">
+    <a href="/create-user" class="btn btn-primary" id="btn-create-user">
+        ➕ Create New User
+    </a>
+    <a href="/reset-password" class="btn btn-secondary" id="btn-reset-password">
+        🔑 Reset Password
+    </a>
+    <a href="/assign-license" class="btn btn-secondary" id="btn-assign-license">
+        📋 Assign License
+    </a>
+</div>
+
+{% if message %}
+<div class="alert alert-success" id="users-success-message">{{ message }}</div>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-error" id="users-error-message">{{ error }}</div>
+{% endif %}
+
+<!-- Users Table -->
+<div class="card" id="users-table-card">
+    <div class="card-title">All Users ({{ users|length }})</div>
+
+    {% if users %}
+    <table id="users-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>License</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="users-table-body">
+            {% for user in users %}
+            <tr id="user-row-{{ user.email | replace('@', '-at-') | replace('.', '-') }}">
+                <td style="font-family:monospace; font-size:11px; color:#8892a4;">{{ user.id[:8] }}...</td>
+                <td id="user-name-{{ loop.index }}"><strong>{{ user.name }}</strong></td>
+                <td id="user-email-{{ loop.index }}">{{ user.email }}</td>
+                <td><span class="badge badge-{{ user.license }}" id="user-license-{{ loop.index }}">{{ user.license }}</span></td>
+                <td><span class="badge badge-active">Active</span></td>
+                <td style="color:#8892a4; font-size:12px;">{{ user.created_at[:10] }}</td>
+                <td>
+                    <a href="/reset-password?email={{ user.email }}"
+                       class="btn btn-secondary"
+                       style="padding:4px 10px;font-size:12px;"
+                       id="user-reset-btn-{{ loop.index }}">
+                        🔑 Reset PW
+                    </a>
+                    <a href="/assign-license?email={{ user.email }}"
+                       class="btn btn-secondary"
+                       style="padding:4px 10px;font-size:12px;margin-left:6px;"
+                       id="user-license-btn-{{ loop.index }}">
+                        📋 License
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center; padding: 40px;" id="no-users-message">
+        <div style="font-size:40px; margin-bottom:12px;">👤</div>
+        <p style="color:#8892a4; margin-bottom:16px;">No users found in the system.</p>
+        <a href="/create-user" class="btn btn-primary" id="empty-create-btn">Create First User</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

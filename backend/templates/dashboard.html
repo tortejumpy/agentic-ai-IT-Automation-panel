@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — IT Admin Panel{% endblock %}
+
+{% block content %}
+<div class="page-header" id="dashboard-header">
+    <h1>Dashboard</h1>
+    <p>IT administration overview and quick actions</p>
+</div>
+
+<!-- ---- Statistics Grid ---- -->
+<div class="stats-grid" id="stats-grid">
+    <div class="stat-card" id="stat-total-users">
+        <div class="stat-value" id="stat-total-users-value">{{ stats.total_users }}</div>
+        <div class="stat-label">Total Users</div>
+    </div>
+
+    <div class="stat-card" id="stat-active-users">
+        <div class="stat-value" id="stat-active-users-value">{{ stats.active_users }}</div>
+        <div class="stat-label">Active Users</div>
+    </div>
+
+    <div class="stat-card" id="stat-pro-licenses">
+        <div class="stat-value" id="stat-pro-licenses-value">{{ stats.pro_licenses }}</div>
+        <div class="stat-label">Pro Licenses</div>
+    </div>
+
+    <div class="stat-card" id="stat-enterprise-licenses">
+        <div class="stat-value" id="stat-enterprise-licenses-value">{{ stats.enterprise_licenses }}</div>
+        <div class="stat-label">Enterprise Licenses</div>
+    </div>
+
+    <div class="stat-card" id="stat-basic-licenses">
+        <div class="stat-value" id="stat-basic-licenses-value">{{ stats.basic_licenses }}</div>
+        <div class="stat-label">Basic Licenses</div>
+    </div>
+</div>
+
+<!-- ---- Quick Actions ---- -->
+<div class="card" id="quick-actions-card">
+    <div class="card-title">Quick Actions</div>
+    <div class="actions-grid" id="actions-grid">
+
+        <a href="/users" class="action-card" id="action-view-users">
+            <div class="action-card-icon">👥</div>
+            <div class="action-card-title">View All Users</div>
+            <div class="action-card-desc">Browse and manage all registered users</div>
+        </a>
+
+        <a href="/create-user" class="action-card" id="action-create-user">
+            <div class="action-card-icon">➕</div>
+            <div class="action-card-title">Create New User</div>
+            <div class="action-card-desc">Add a new user to the system</div>
+        </a>
+
+        <a href="/reset-password" class="action-card" id="action-reset-password">
+            <div class="action-card-icon">🔑</div>
+            <div class="action-card-title">Reset Password</div>
+            <div class="action-card-desc">Reset any user's password</div>
+        </a>
+
+        <a href="/assign-license" class="action-card" id="action-assign-license">
+            <div class="action-card-icon">📋</div>
+            <div class="action-card-title">Assign License</div>
+            <div class="action-card-desc">Manage user license tiers</div>
+        </a>
+
+    </div>
+</div>
+
+<!-- ---- Recent Users ---- -->
+<div class="card" id="recent-users-card">
+    <div class="card-title">Recent Users</div>
+
+    {% if recent_users %}
+    <table id="recent-users-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>License</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in recent_users %}
+            <tr id="user-row-{{ loop.index }}">
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td><span class="badge badge-{{ user.license }}">{{ user.license }}</span></td>
+                <td><span class="badge badge-active">Active</span></td>
+                <td>
+                    <a href="/reset-password?email={{ user.email }}" class="btn btn-secondary" style="padding:4px 10px;font-size:12px;" id="reset-btn-{{ loop.index }}">Reset PW</a>
+                    <a href="/assign-license?email={{ user.email }}" class="btn btn-secondary" style="padding:4px 10px;font-size:12px;margin-left:6px;" id="license-btn-{{ loop.index }}">License</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#8892a4; text-align:center; padding:24px;">No users found. <a href="/create-user" style="color:#4f6ef7;">Create the first user →</a></p>
+    {% endif %}
+</div>
+
+{% endblock %}
