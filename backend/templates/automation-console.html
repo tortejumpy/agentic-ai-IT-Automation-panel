@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Automation Console — IT Admin Panel{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1200px; margin: 0 auto; padding: 24px;">
+    <!-- Header -->
+    <div style="margin-bottom: 48px;">
+        <h1 style="font-size: 32px; font-weight: 700; margin-bottom: 8px;">🤖 Automation Console</h1>
+        <p style="color: var(--text-muted); font-size: 14px;">Submit IT automation tasks and watch them execute in real-time</p>
+    </div>
+
+    <!-- Main Grid: Input on Left, Logging on Right -->
+    <div style="display: grid; grid-template-columns: 350px 1fr; gap: 24px; margin-bottom: 40px;">
+
+        <!-- LEFT: Task Input Panel -->
+        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 20px; height: fit-content; position: sticky; top: 24px;">
+            
+            <div>
+                <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--accent);">📋 Task Templates</h2>
+                
+                <!-- Template buttons -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button 
+                        class="template-btn" 
+                        data-template="reset password for john@company.com"
+                        type="button"
+                        style="background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 12px; transition: all 0.2s;"
+                    >
+                        🔐 Reset Password
+                    </button>
+                    <button 
+                        class="template-btn" 
+                        data-template="create user alice@company.com with name Alice Johnson"
+                        type="button"
+                        style="background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 12px; transition: all 0.2s;"
+                    >
+                        👤 Create User
+                    </button>
+                    <button 
+                        class="template-btn" 
+                        data-template="create user bob@company.com and assign pro license"
+                        type="button"
+                        style="background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 12px; transition: all 0.2s;"
+                    >
+                        👤 + 📦 Create & License
+                    </button>
+                    <button 
+                        class="template-btn" 
+                        data-template="assign enterprise license to jane@company.com"
+                        type="button"
+                        style="background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; text-align: left; font-size: 12px; transition: all 0.2s;"
+                    >
+                        📦 Assign License
+                    </button>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div style="border-top: 1px solid var(--border);"></div>
+
+            <!-- Task Input -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                    Custom Task
+                </label>
+                <textarea 
+                    id="taskInput"
+                    placeholder="e.g., reset password for user@company.com"
+                    style="width: 100%; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; resize: vertical; min-height: 120px; outline: none; transition: border 0.2s;"
+                ></textarea>
+                
+                <button 
+                    id="executeBtn"
+                    style="background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s;"
+                >
+                    ▶ Execute Task
+                </button>
+            </div>
+
+            <!-- Job Status -->
+            <div id="statusPanel" style="display: none; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">STATUS</div>
+                <div id="jobStatus" style="font-size: 14px; font-weight: 600; color: var(--text);"></div>
+                <div id="jobId" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Execution Logs Panel -->
+        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column;">
+            
+            <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--accent);">📊 Execution Logs</h2>
+            
+            <!-- Log Viewer -->
+            <div 
+                id="logViewer"
+                style="
+                    flex: 1;
+                    background: var(--bg);
+                    border: 1px solid var(--border);
+                    border-radius: 6px;
+                    padding: 16px;
+                    font-family: 'Monaco', 'Courier New', monospace;
+                    font-size: 12px;
+                    color: var(--text);
+                    overflow-y: auto;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    max-height: 600px;
+                    min-height: 300px;
+                    line-height: 1.6;
+                "
+            >
+                <div style="color: var(--text-muted);">Waiting for task submission...</div>
+            </div>
+
+            <!-- Controls -->
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button 
+                    id="clearBtn"
+                    style="background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s;"
+                >
+                    🗑️ Clear Logs
+                </button>
+                <button 
+                    id="downloadBtn"
+                    style="background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; margin-left: auto;"
+                >
+                    📥 Download Logs
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Jobs -->
+    <div>
+        <h2 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--accent);">📜 Job History</h2>
+        <div id="jobHistory" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+            <div style="color: var(--text-muted); font-size: 14px;">No jobs yet</div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .template-btn:hover {
+        background: var(--surface2) !important;
+        border-color: var(--accent) !important;
+    }
+
+    .template-btn.active {
+        background: var(--accent) !important;
+        color: white !important;
+        border-color: var(--accent) !important;
+    }
+
+    #taskInput:focus {
+        border-color: var(--accent) !important;
+    }
+
+    #executeBtn:hover:not(:disabled) {
+        background: var(--accent-hover) !important;
+    }
+
+    #executeBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .log-entry {
+        margin: 2px 0;
+        padding: 2px 0;
+        transition: background-color 0.1s;
+    }
+
+    .log-entry:hover {
+        background-color: rgba(79, 110, 247, 0.1);
+    }
+
+    .log-entry.info { color: var(--text); }
+    .log-entry.success { color: var(--success); font-weight: 600; }
+    .log-entry.error { color: var(--danger); font-weight: 600; }
+    .log-entry.warning { color: var(--warning); font-weight: 600; }
+
+    .job-item {
+        padding: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin-bottom: 8px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .job-item:hover {
+        border-color: var(--accent);
+        background: var(--surface2);
+    }
+
+    .job-item.running { border-left: 3px solid var(--accent); }
+    .job-item.completed { border-left: 3px solid var(--success); }
+    .job-item.failed { border-left: 3px solid var(--danger); }
+    .job-item.pending { border-left: 3px solid var(--warning); }
+</style>
+
+<script>
+    let currentJobId = null;
+    let eventSource = null;
+
+    // Template buttons
+    document.querySelectorAll('.template-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const template = btn.getAttribute('data-template');
+            document.getElementById('taskInput').value = template;
+            // Reset active button states
+            document.querySelectorAll('.template-btn').forEach(b => b.style.background = 'var(--surface)');
+            btn.style.background = 'var(--accent)';
+            btn.style.color = 'white';
+        });
+    });
+
+    // Execute button
+    document.getElementById('executeBtn').addEventListener('click', async () => {
+        const task = document.getElementById('taskInput').value.trim();
+        
+        if (!task) {
+            alert('Please enter a task description');
+            return;
+        }
+
+        // Submit task
+        document.getElementById('executeBtn').disabled = true;
+        document.getElementById('logViewer').innerHTML = '';
+        
+        try {
+            const formData = new FormData();
+            formData.append('task', task);
+            
+            const response = await fetch('/api/automation/submit', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            currentJobId = data.job_id;
+            
+            // Show status
+            document.getElementById('statusPanel').style.display = 'block';
+            document.getElementById('jobStatus').textContent = '🔄 Running...';
+            document.getElementById('jobId').textContent = `Job: ${currentJobId}`;
+            
+            // Start log streaming
+            streamLogs(currentJobId);
+            
+            // Load job history
+            loadJobHistory();
+            
+        } catch (error) {
+            document.getElementById('logViewer').innerHTML = `<span style="color: var(--danger);">❌ Error: ${error.message}</span>`;
+            document.getElementById('executeBtn').disabled = false;
+        }
+    });
+
+    // Stream logs via SSE
+    function streamLogs(jobId) {
+        // Close previous connection if exists
+        if (eventSource) {
+            eventSource.close();
+        }
+
+        eventSource = new EventSource(`/api/automation/${jobId}/logs`);
+        let logCount = 0;
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                
+                // Check for completion signal
+                if (data.type === 'complete') {
+                    const status = data.status === 'completed' ? '✅ Completed' : '❌ Failed';
+                    const statusEl = document.getElementById('jobStatus');
+                    statusEl.textContent = status;
+                    statusEl.style.color = data.status === 'completed' ? 'var(--success)' : 'var(--danger)';
+                    document.getElementById('executeBtn').disabled = false;
+                    eventSource.close();
+                    loadJobHistory();
+                    return;
+                }
+
+                // Add log entry
+                const logViewer = document.getElementById('logViewer');
+                
+                // Clear initial message on first log
+                if (logCount === 0) {
+                    logViewer.innerHTML = '';
+                }
+                logCount++;
+
+                const timestamp = data.timestamp || '';
+                const level = data.level || 'info';
+                const message = data.message || '';
+
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${level}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                logViewer.appendChild(logEntry);
+
+                // Auto-scroll to bottom
+                logViewer.scrollTop = logViewer.scrollHeight;
+                
+            } catch (error) {
+                console.error('Error parsing log:', error);
+            }
+        };
+
+        eventSource.onerror = () => {
+            eventSource.close();
+            document.getElementById('executeBtn').disabled = false;
+        };
+    }
+
+    // Load job history
+    async function loadJobHistory() {
+        try {
+            const response = await fetch('/api/automation/jobs/recent');
+            const data = await response.json();
+            
+            const historyEl = document.getElementById('jobHistory');
+            
+            if (data.jobs.length === 0) {
+                historyEl.innerHTML = '<div style="color: var(--text-muted); font-size: 14px;">No jobs yet</div>';
+                return;
+            }
+
+            historyEl.innerHTML = data.jobs.map(job => `
+                <div class="job-item ${job.status}">
+                    <div style="font-weight: 600; margin-bottom: 4px;">
+                        <span style="margin-right: 8px;">
+                            ${job.status === 'completed' ? '✅' : job.status === 'failed' ? '❌' : job.status === 'running' ? '🔄' : '⏱️'}
+                        </span>
+                        ${job.task.substring(0, 60)}${job.task.length > 60 ? '...' : ''}
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                        ID: ${job.job_id} • ${new Date(job.start_time).toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+            
+        } catch (error) {
+            console.error('Error loading job history:', error);
+        }
+    }
+
+    // Clear logs
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        document.getElementById('logViewer').innerHTML = '<div style="color: var(--text-muted);">Logs cleared</div>';
+    });
+
+    // Download logs
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        if (!currentJobId) {
+            alert('No active job');
+            return;
+        }
+
+        const logs = document.getElementById('logViewer').textContent;
+        const blob = new Blob([logs], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `automation_${currentJobId}_${new Date().toISOString().slice(0, 10)}.txt`;
+        a.click();
+    });
+
+    // Load history on page load
+    loadJobHistory();
+</script>
+
+{% endblock %}

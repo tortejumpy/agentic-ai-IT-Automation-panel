@@ -14,6 +14,7 @@ import uvicorn
 from backend.routes.auth import router as auth_router
 from backend.routes.users import router as users_router
 from backend.routes.admin import router as admin_router
+from backend.routes.automation import router as automation_router
 
 # ---------------------------------------------------------------------------
 # Create FastAPI application
@@ -30,6 +31,7 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(admin_router)
+app.include_router(automation_router)
 
 # ---------------------------------------------------------------------------
 # Mount static files (CSS, JS, images)
@@ -47,7 +49,9 @@ async def startup_event():
     print("  URL: http://localhost:8000")
     print("  Login: admin / admin123")
     print("  Routes: /login, /dashboard, /users, /create-user")
-    print("          /reset-password, /assign-license")
+    print("          /reset-password, /assign-license, /automation")
+    print("  🤖 NEW: /automation — Real-time task automation console")
+    print("=" * 60)
     print("=" * 60)
 
 
