@@ -7,6 +7,8 @@ import asyncio
 import json
 import logging
 import os
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -61,8 +63,8 @@ class JobExecutor:
         self.logs.append(log_entry)
         logger.info(f"[{self.job_id}] {message}")
         
-    async def execute(self):
-        """Execute the automation task."""
+    def execute(self):
+        """Execute the automation task in a new event loop (runs in thread)."""
         self.status = "running"
         self.start_time = datetime.now()
         
@@ -82,19 +84,27 @@ class JobExecutor:
             # Hook into agent logging
             self._setup_log_capture()
             
-            # Run the agent
-            self.log("⏳ Planning phase starting...", "info")
-            result = await self.agent.run(self.task)
+            # Create a new event loop for this thread
+            # This is necessary for Playwright on Windows to work properly
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             
-            self.log("=" * 60, "info")
-            self.log(f"✅ Task completed successfully!", "success")
-            self.log(f"📊 Execution summary:", "info")
-            self.log(f"   - Success: {result.get('success', False)}", "info")
-            self.log(f"   - Steps: {result.get('steps_taken', 0)}", "info")
-            self.log(f"   - Duration: {result.get('duration', 0):.2f}s", "info")
-            
-            self.result = result
-            self.status = "completed"
+            try:
+                # Run the agent in the new event loop
+                self.log("⏳ Planning phase starting...", "info")
+                result = loop.run_until_complete(self.agent.run(self.task))
+                
+                self.log("=" * 60, "info")
+                self.log(f"✅ Task completed successfully!", "success")
+                self.log(f"📊 Execution summary:", "info")
+                self.log(f"   - Success: {result.get('success', False)}", "info")
+                self.log(f"   - Steps: {result.get('steps_taken', 0)}", "info")
+                self.log(f"   - Duration: {result.get('duration', 0):.2f}s", "info")
+                
+                self.result = result
+                self.status = "completed"
+            finally:
+                loop.close()
             
         except Exception as e:
             error_msg = str(e)
@@ -102,13 +112,24 @@ class JobExecutor:
             self.log("Task failed. Check logs above for details.", "error")
             self.status = "failed"
             self.result = {"success": False, "error": error_msg}
+            import traceback
+            self.log(traceback.format_exc(), "error")
             
         finally:
             self.end_time = datetime.now()
             # Clean up browser
             if self.agent:
                 try:
-                    await self.agent.tools.close()
+                    # Run close in the same loop if it exists
+                    if asyncio.get_event_loop().is_running():
+                        asyncio.create_task(self.agent.tools.close())
+                    else:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            loop.run_until_complete(self.agent.tools.close())
+                        finally:
+                            loop.close()
                 except:
                     pass
     
@@ -141,6 +162,9 @@ class JobExecutor:
         capture_handler = LogCapture(self)
         agent_logger.addHandler(capture_handler)
 
+
+# Thread pool for running blocking operations
+executor_pool = ThreadPoolExecutor(max_workers=3, thread_name_prefix="automation_")
 
 # ---------------------------------------------------------------------------
 # GET /automation — automation control panel (web UI)
@@ -177,8 +201,10 @@ async def submit_task(request: Request, task: str = Form(...)):
     executor = JobExecutor(job_id, task)
     jobs_store[job_id] = executor
     
-    # Start execution in background
-    asyncio.create_task(executor.execute())
+    # Start execution in a thread pool (not in FastAPI's event loop)
+    # This avoids the Playwright subprocess issue on Windows
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(executor_pool, executor.execute)
     
     return JSONResponse({
         "job_id": job_id,
