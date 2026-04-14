@@ -10,13 +10,14 @@ jinja2==3.1.4
 python-multipart==0.0.18  # Required for FastAPI form parsing
 
 # ---- AI / LLM ----
-groq==0.12.0               # Groq Python SDK for fast LLM inference
+groq>=0.13.0              # Groq Python SDK (updated for httpx compatibility)
+httpx>=0.24.0             # Explicit httpx version for compatibility
 
 # ---- Browser Automation ----
-playwright==1.49.0          # Playwright for Python (browser control)
+playwright==1.49.0        # Playwright for Python (browser control)
 
 # ---- Environment & Config ----
-python-dotenv==1.0.1        # Load .env files
+python-dotenv==1.0.1      # Load .env files
 
 # ---- Utilities ----
 # (No heavy optional deps — keeping it lean)
