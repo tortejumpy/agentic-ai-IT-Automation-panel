@@ -20,6 +20,7 @@ This is the heart of the agentic system.
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -42,8 +43,17 @@ logger = logging.getLogger("agent.core")
 # Maximum steps before forcing a stop (prevents infinite loops)
 MAX_STEPS = 30
 
-# Base URL for the IT admin panel
-BASE_URL = "http://localhost:8000"
+# Base URL for the IT admin panel.
+# On Railway, $PORT is assigned dynamically at runtime — never hardcode 8000.
+# BACKEND_URL env var overrides everything (useful for staging/custom domains).
+def _get_base_url() -> str:
+    explicit = os.getenv("BACKEND_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    port = os.getenv("PORT", "8000")
+    return f"http://localhost:{port}"
+
+BASE_URL = _get_base_url()
 
 
 class ITSupportAgent:
@@ -57,6 +67,7 @@ class ITSupportAgent:
         headless: bool = False,
         log_dir: str = "logs",
         groq_model: str = "llama-3.3-70b-versatile",
+        base_url: str = None,
     ):
         """
         Args:
@@ -68,9 +79,14 @@ class ITSupportAgent:
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
+        # Resolve backend URL — must match the port this process is bound to.
+        # On Railway $PORT is dynamic; on local dev it defaults to 8000.
+        self.base_url = base_url or _get_base_url()
+        logger.info(f"🌐 Backend URL: {self.base_url}")
+
         # Initialize components
         self.tools = BrowserTools(headless=headless)
-        self.planner = Planner(model=groq_model)
+        self.planner = Planner(model=groq_model, base_url=self.base_url)
         self.executor: Optional[Executor] = None  # Created after browser starts
 
         # Session state

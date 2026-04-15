@@ -25,8 +25,10 @@ logger = logging.getLogger("agent.planner")
 # ---------------------------------------------------------------------------
 # System prompt — defines the agent's role and output format
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT = """You are an expert IT automation agent controlling a web browser.
-You interact with a Mock IT Admin Panel running at http://localhost:8000.
+# System prompt template — {base_url} is substituted at Planner init time
+# so the LLM always navigates to the correct host:port.
+SYSTEM_PROMPT_TEMPLATE = """You are an expert IT automation agent controlling a web browser.
+You interact with a Mock IT Admin Panel running at {base_url}.
 
 ## Your Role
 - Automate IT support tasks by navigating the web UI like a human
@@ -56,13 +58,13 @@ You interact with a Mock IT Admin Panel running at http://localhost:8000.
 
 ## Output Format
 ALWAYS output a valid JSON object with this exact structure:
-{
+{{
     "action": "tool_name",
     "target": "selector_or_url",
     "value": "value_to_type_or_select_or_empty_string",
     "reasoning": "brief explanation of why this action",
     "expected_outcome": "what you expect to see after this action"
-}
+}}
 
 ## Available Actions (tool_name values)
 - open_url: navigate to a URL (target = URL)
@@ -117,10 +119,12 @@ class Planner:
     3. Handle plan adjustments when steps fail
     """
 
-    def __init__(self, model: str = "llama-3.3-70b-versatile"):
+    def __init__(self, model: str = "llama-3.3-70b-versatile", base_url: str = None):
         """
         Args:
             model: Groq model to use. llama-3.3-70b-versatile is fast and capable.
+            base_url: The backend URL the browser agent should navigate to.
+                      Defaults to http://localhost:$PORT (Railway-aware).
         """
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -128,7 +132,16 @@ class Planner:
 
         self.client = Groq(api_key=api_key)
         self.model = model
-        logger.info(f"🧠 Planner initialized with model: {model}")
+
+        # Inject the real backend URL into the system prompt so the LLM
+        # generates navigation actions pointing at the correct host:port.
+        if not base_url:
+            port = os.getenv("PORT", "8000")
+            base_url = os.getenv("BACKEND_URL", f"http://localhost:{port}")
+        self.base_url = base_url.rstrip("/")
+        self.system_prompt = SYSTEM_PROMPT_TEMPLATE.format(base_url=self.base_url)
+
+        logger.info(f"🧠 Planner initialized | model: {model} | base_url: {self.base_url}")
 
     def generate_initial_plan(self, request: str) -> list[dict]:
         """
@@ -147,7 +160,7 @@ class Planner:
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,  # Low temperature for consistent, structured output
@@ -215,7 +228,7 @@ Otherwise output the next action in JSON format.
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
@@ -272,7 +285,7 @@ If you cannot recover, output: {{"action": "done", "target": "failed", "value": 
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.2,
