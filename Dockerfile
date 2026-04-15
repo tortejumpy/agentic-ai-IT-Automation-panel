@@ -70,7 +70,7 @@ EXPOSE 8000
 
 # Health check — uses $PORT so it works on Railway too
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # IMPORTANT: Use shell form (not exec/JSON-array form) so that $PORT is
 # expanded by the shell at container start time. Railway injects PORT as an

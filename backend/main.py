@@ -9,7 +9,7 @@ panel with login, user management, and admin operations.
 import os
 import sys
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
@@ -39,12 +39,16 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 @app.get("/")
 async def root():
-    """Simple health check - verifies app is running."""
+    """Redirect root URL to the login page."""
+    return RedirectResponse(url="/login", status_code=302)
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway and monitoring tools."""
     return {
         "status": "ok",
         "message": "Mock IT Admin Panel is running!",
-        "login_url": "/login",
-        "dashboard": "/dashboard"
     }
 
 # ---------------------------------------------------------------------------
