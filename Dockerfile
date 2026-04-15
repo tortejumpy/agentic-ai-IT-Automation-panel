@@ -59,16 +59,21 @@ RUN playwright install chromium
 # Copy application code
 COPY . .
 
+# Fix line endings for shell scripts (critical when developed on Windows)
+RUN sed -i 's/\r//' entrypoint.sh && chmod +x entrypoint.sh
+
 # Create logs directory
 RUN mkdir -p logs
 
-# Expose port
+# Expose port (Railway sets $PORT dynamically; 8000 is the local dev default)
 EXPOSE 8000
 
-# Health check - verify app is responding on port 8000
-HEALTHCHECK --interval=30s --timeout=10s --start-period=50s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+# Health check — uses $PORT so it works on Railway too
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
 
-# Start the application on fixed port 8000
-# Railway will handle port mapping automatically
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# IMPORTANT: Use shell form (not exec/JSON-array form) so that $PORT is
+# expanded by the shell at container start time. Railway injects PORT as an
+# env var; exec form bypasses the shell and passes the literal string "$PORT"
+# to uvicorn — which causes: Error: Invalid value for '--port': '$PORT'
+CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
