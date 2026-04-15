@@ -44,10 +44,30 @@ class BrowserTools:
         """Launch the browser and create a fresh context."""
         logger.info("🚀 Launching browser...")
         self._playwright = await async_playwright().start()
+
+        # These args are REQUIRED when running Chromium inside a Docker
+        # container or any environment without a display (e.g. Railway):
+        #   --no-sandbox           : Chromium sandbox requires kernel features
+        #                            not available in most container runtimes
+        #   --disable-dev-shm-usage: /dev/shm is only 64 MB in Docker by
+        #                            default; this makes Chromium use /tmp instead
+        #   --disable-gpu          : No GPU in headless server environments
+        #   --single-process       : Reduces memory overhead in constrained envs
+        container_args = [
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+            "--disable-extensions",
+            "--no-first-run",
+            "--no-zygote",
+        ]
+
         self._browser = await self._playwright.chromium.launch(
             headless=self.headless,
-            slow_mo=300,  # Slow down by 300ms — makes it feel human
-            args=["--no-sandbox", "--disable-dev-shm-usage"],
+            # slow_mo only in headed mode (no point slowing down a headless server)
+            slow_mo=300 if not self.headless else 0,
+            args=container_args,
         )
         self._context = await self._browser.new_context(
             viewport={"width": 1280, "height": 800},

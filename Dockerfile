@@ -3,58 +3,25 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies required by Playwright on Linux
+# Install minimal system utilities needed before playwright
+# (playwright install --with-deps will handle all browser-specific deps)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
     curl \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libc6 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
-    libgbm1 \
-    libglib2.0-0 \
-    libgpg-error0 \
-    libgtk-3-0 \
-    libharfbuzz0b \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libpixman-1-0 \
-    libstdc++6 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxinerama1 \
-    libxkbcommon0 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    xdg-utils \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies with pip upgrade first
+# Install Python dependencies
 RUN pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers (CRITICAL for production)
-# Note: System dependencies already installed via apt-get above
-# Do NOT use --with-deps in Docker (causes build to hang)
-RUN playwright install chromium
+# Install Playwright + ALL system browser dependencies in one step.
+# --with-deps tells playwright to run apt-get and install every missing
+# library that Chromium needs (libnss3, libnspr4, libgbm1, etc.).
+# This is the ONLY reliable way to get a working browser on Debian/Ubuntu.
+RUN playwright install --with-deps chromium
 
 # Copy application code
 COPY . .
@@ -68,8 +35,8 @@ RUN mkdir -p logs
 # Expose port (Railway sets $PORT dynamically; 8000 is the local dev default)
 EXPOSE 8000
 
-# Health check — uses $PORT so it works on Railway too
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+# Health check — uses /health endpoint (JSON 200, no redirect)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # IMPORTANT: Use shell form (not exec/JSON-array form) so that $PORT is
