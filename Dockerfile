@@ -59,6 +59,10 @@ RUN playwright install chromium
 # Copy application code
 COPY . .
 
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Create logs directory
 RUN mkdir -p logs
 
@@ -69,7 +73,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=50s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
-# Start the application with production settings
-# Use shell form (not JSON array) to allow environment variable expansion
-# Railway sets $PORT, so we use ${PORT:-8000} as fallback
-CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+# Use entrypoint script for proper environment variable expansion
+ENTRYPOINT ["/app/entrypoint.sh"]
