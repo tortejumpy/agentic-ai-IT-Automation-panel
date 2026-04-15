@@ -52,8 +52,9 @@ RUN pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt
 
 # Install Playwright browsers (CRITICAL for production)
-# Use install-deps to also install system libraries needed for runtime
-RUN playwright install --with-deps chromium
+# Note: System dependencies already installed via apt-get above
+# Do NOT use --with-deps in Docker (causes build to hang)
+RUN playwright install chromium
 
 # Copy application code
 COPY . .
@@ -64,9 +65,9 @@ RUN mkdir -p logs
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/dashboard || exit 1
+# Health check - verify app is responding on port 8000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=50s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
 
 # Start the application with production settings
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
